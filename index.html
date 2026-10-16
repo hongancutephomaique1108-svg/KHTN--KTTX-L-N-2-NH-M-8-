@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Đĩa Nhật – Nguyệt | Mô phỏng trộn màu của Newton</title>
+<style>
+:root{--bg:#f3f0e8;--card:#fff;--ink:#1c2230;--mut:#5b6475;--line:#e2ded3;--acc:#c2570c;--acc2:#3b4cc0;--stage1:#fbf9f3;--stage2:#dcd6c6;--chip:#f0ede4;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1017;--card:#161b26;--ink:#eef1f7;--mut:#9aa4b8;--line:#262d3c;--acc:#f59a4a;--acc2:#8fa0ff;--stage1:#222a3a;--stage2:#0e121b;--chip:#1e2533}}
+:root[data-theme="dark"]{--bg:#0d1017;--card:#161b26;--ink:#eef1f7;--mut:#9aa4b8;--line:#262d3c;--acc:#f59a4a;--acc2:#8fa0ff;--stage1:#222a3a;--stage2:#0e121b;--chip:#1e2533}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.55}
+.wrap{max-width:1120px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:clamp(1.3rem,3.2vw,1.9rem);margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--mut);margin:0 0 20px;font-size:.95rem}
+.grid{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:900px){.grid{grid-template-columns:1.25fr .85fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+.card h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:0 0 10px}
+.stage{padding:0;overflow:hidden}
+.view{aspect-ratio:1/1;width:100%;background:radial-gradient(circle at 50% 40%,var(--stage1),var(--stage2));display:flex}
+canvas{width:100%;height:100%;display:block}
+.ctrl{padding:14px 16px;border-top:1px solid var(--line);display:grid;gap:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{font:inherit;font-size:.88rem;padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:var(--chip);color:var(--ink);cursor:pointer}
+button:hover{border-color:var(--acc)}
+button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+button.flip{margin-left:auto;background:var(--acc2);border-color:var(--acc2);color:#fff}
+input[type=range]{width:100%;accent-color:var(--acc)}
+.sl{display:flex;justify-content:space-between;font-size:.76rem;color:var(--mut)}
+.big{font-size:2.1rem;font-weight:700;line-height:1}
+.big small{font-size:.9rem;font-weight:500;color:var(--mut)}
+.bar{height:10px;border-radius:99px;background:var(--chip);overflow:hidden;margin:8px 0 6px;border:1px solid var(--line)}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .15s}
+.mut{color:var(--mut);font-size:.86rem}
+.sw{display:flex;gap:10px;align-items:center;margin:6px 0}
+.sw b{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);flex:none}
+.col{display:grid;gap:16px;align-content:start}
+.steps{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));margin-top:16px}
+.steps .card b.n{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--acc);color:#fff;margin-right:8px;font-size:.85rem}
+table{border-collapse:collapse;width:100%;font-size:.86rem;margin-top:6px}
+td,th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.legend span{font-size:.76rem;padding:3px 8px;border-radius:99px;color:#fff;text-shadow:0 0 2px rgba(0,0,0,.45)}
+h3.sec{margin:28px 0 0;font-size:1.15rem}
+.dv{display:grid;gap:16px;grid-template-columns:1fr;align-items:start;margin-top:14px}
+@media(min-width:800px){.dv{grid-template-columns:minmax(280px,440px) 1fr}}
+#dvSvg{width:100%;height:auto}
+#dvSvg text{fill:var(--mut);font-size:10px}
+#dvSvg text.in{fill:#fff;font-size:12px;font-weight:600;paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:2.5px}
+#dvSvg text.bd{fill:var(--acc);font-size:11px;font-weight:700}
+input[type=number]{font:inherit;padding:4px 8px;border-radius:8px;border:1px solid var(--line);background:var(--chip);color:var(--ink);width:74px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Đĩa Nhật – Nguyệt: mô phỏng trộn màu của Newton</h1>
+<p class="sub">Màu hòa trộn phụ thuộc vào tốc độ quay và không bao giờ "trắng tinh". Kéo thanh tốc độ để quan sát từng giai đoạn.</p>
+
+<div class="grid">
+ <div class="card stage">
+  <div class="view"><canvas id="cv" aria-label="Đĩa Newton đang quay"></canvas></div>
+  <div class="ctrl">
+   <div class="row" id="chips"></div>
+   <div>
+    <input type="range" id="sp" min="0" max="50" step="0.5" value="0">
+    <div class="sl"><span>0</span><span>12</span><span>25</span><span>37</span><span>50 vòng/giây</span></div>
+   </div>
+   <div class="row"><span class="mut" id="faceLbl"></span><button class="flip" id="flip">🔄 Lật sang mặt kia</button></div>
+  </div>
+ </div>
+
+ <div class="col">
+  <div class="card">
+   <h2>Số liệu thời gian thực</h2>
+   <div class="big"><span id="fv">0</span> <small>vòng/giây · <span id="rpm">0</span> vòng/phút</small></div>
+   <div class="bar"><i id="mixBar"></i></div>
+   <div><b>Độ hòa trộn ở tâm đĩa: <span id="mix">0</span>%</b></div>
+   <div class="mut" id="stageTxt"></div>
+  </div>
+  <div class="card">
+   <h2>Màu mắt thấy khi hòa trộn gần hoàn toàn</h2>
+   <div class="sw"><b id="swIn"></b><div><b id="hxIn"></b><div class="mut">Tâm đĩa (các cung cầu vồng)</div></div></div>
+   <div class="sw"><b id="swOut"></b><div><b id="hxOut"></b><div class="mut" id="outLbl">Vòng ngoài</div></div></div>
+   <div class="mut">Tâm đĩa ra <b>xám nhạt hơi ấm</b>, không phải trắng sáng. Giấy màu chỉ phản xạ một phần ánh sáng, nên khi trộn lại độ sáng thấp hơn giấy trắng.</div>
+  </div>
+  <div class="card">
+   <h2>Cơ sở vật lí của mô hình</h2>
+   <div class="mut">Mắt giữ hình ảnh khoảng vài chục mili-giây (lưu ảnh võng mạc). Mô hình coi mắt là bộ lọc thông thấp với hằng số thời gian τ ≈ 20 ms và trộn màu trong không gian ánh sáng tuyến tính. Quay càng nhanh, mỗi điểm trên mắt nhận về càng nhiều màu trong cùng khoảng τ nên các màu càng hòa. Quay chậm thì mắt vẫn tách được từng cung màu. Các con số là mô hình minh họa, thực tế còn tùy ánh sáng và người quan sát.</div>
+  </div>
+ </div>
+</div>
+
+<h3 class="sec">Hướng dẫn làm đĩa thật (đường kính 12 cm, bán kính 6 cm)</h3>
+<div class="steps">
+ <div class="card"><b class="n">1</b><b>Chuẩn bị</b><div class="mut">Bìa cứng trắng, giấy hoặc bút màu (đỏ, cam, vàng, lục, lam, chàm, tím), sợi dây dài 60–80 cm, kéo, compa, thước đo góc. Dán hai lớp bìa để đĩa cứng, hai mặt phẳng.</div></div>
+ <div class="card"><b class="n">2</b><b>Kẻ các vòng đồng tâm</b>
+  <table>
+   <tr><th>Vòng</th><th>Bán kính</th><th>Nội dung</th></tr>
+   <tr><td>Tâm</td><td>0 – 3,5 cm</td><td>7 cung màu</td></tr>
+   <tr><td>Vòng ngăn</td><td>3,5 – 3,7 cm</td><td>Đen mảnh</td></tr>
+   <tr><td>Vòng ngoài</td><td>3,7 – 5,4 cm</td><td>12 cung × 30°</td></tr>
+   <tr><td>Viền</td><td>5,4 – 6 cm</td><td>24 cung × 15° trắng xen nhạt</td></tr>
+  </table></div>
+ <div class="card"><b class="n">3</b><b>Chia góc 7 cung ở tâm</b><div class="mut">Chia không đều nhau để màu trộn ra xám trung tính thay vì ngả hồng. Dùng thước đo góc theo thứ tự:</div><div class="legend" id="lg"></div></div>
+ <div class="card"><b class="n">4</b><b>Hai mặt Nhật – Nguyệt</b><div class="mut">Mặt Nhật: vòng ngoài lặp đỏ, cam, vàng. Mặt Nguyệt: vòng ngoài lặp lam, chàm, tím. Tâm giữ nguyên 7 màu. Mặt sau ghi <b>NHÓM …</b> ở vùng viền.</div></div>
+ <div class="card"><b class="n">5</b><b>Đục lỗ, xỏ dây</b><div class="mut">Đục hai lỗ đối xứng qua tâm, mỗi lỗ cách tâm khoảng 1 cm. Xỏ dây, buộc thành vòng kín. Xoắn dây rồi kéo căng, nới đều để đĩa quay.</div></div>
+ <div class="card"><b class="n">6</b><b>Kết quả thực tế</b><div class="mut">Quay 20 vòng/giây trở lên và dưới ánh sáng mạnh, tâm đĩa nhòe thành xám nhạt gần đồng đều. Quay chậm hơn thì còn vằn màu. Dán giấy màu phẳng sẽ cho màu đều hơn tô bút.</div></div>
+</div>
+
+<h3 class="sec">Chia đĩa chính xác (minh họa theo clip Newton's Disc – Reverse RAINBOW)</h3>
+<div class="card" style="margin-top:12px">
+ <div class="mut">Clip dùng đĩa 6 cung màu cầu vồng chia đều. Chọn một kiểu chia, trang sẽ vẽ sơ đồ có thước đo góc và tính sẵn các mốc cần đánh dấu. Mốc đo từ 0° ở đỉnh, tăng theo chiều kim đồng hồ.</div>
+ <div class="row" id="dvChips" style="margin-top:10px"></div>
+ <div class="dv">
+  <svg id="dvSvg" viewBox="-205 -205 410 410" role="img" aria-label="Sơ đồ chia đĩa có thước đo góc"></svg>
+  <div>
+   <div class="row mut">Đường kính đĩa (cm): <input type="number" id="dvD" value="12" min="4" max="40" step="0.5"></div>
+   <table id="dvT"></table>
+   <p class="mut" id="dvNote"></p>
+   <button id="dvApply" class="on">▶ Xem mô phỏng quay với kiểu chia này</button>
+  </div>
+ </div>
+</div>
+</div>
+
+<script>
+(function(){
+const N=360,TAU=0.02;
+let RAINBOW=['#D32F2F','#F57C00','#FFEB3B','#4CAF50','#03A9F4','#3F51B5','#9C27B0'];
+let NAMES=['Đỏ','Cam','Vàng','Lục','Lam','Chàm','Tím'];
+let W=[36,36,48,68,68,68,36];
+function fmt(x){return Number(x.toFixed(2)).toString().replace('.',',')}
+const FACES={
+ sun:{name:'Mặt Nhật',outer:['#E53935','#FB8C00','#FDD835'],rim:'#FFD9A0',lbl:'Vòng ngoài: đỏ – cam – vàng (màu nóng)'},
+ moon:{name:'Mặt Nguyệt',outer:['#1E88E5','#3949AB','#8E24AA'],rim:'#C6CFFF',lbl:'Vòng ngoài: lam – chàm – tím (màu lạnh)'}
+};
+const h2l=h=>[1,3,5].map(i=>Math.pow(parseInt(h.substr(i,2),16)/255,2.2));
+const s255=v=>Math.round(255*Math.pow(Math.min(1,Math.max(0,v)),1/2.2));
+const css=v=>'rgb('+s255(v[0])+','+s255(v[1])+','+s255(v[2])+')';
+const hex=v=>'#'+v.map(x=>s255(x).toString(16).padStart(2,'0')).join('').toUpperCase();
+function patterns(face){
+ const inner=[];let acc=0,idx=0;for(let d=0;d<N;d++){while(idx<W.length-1&&d+0.5>=acc+W[idx]){acc+=W[idx];idx++}inner.push(h2l(RAINBOW[idx]))}
+ const outer=[],rim=[],rc=h2l(face.rim),wh=h2l('#FBFAF6');
+ for(let d=0;d<N;d++){outer.push(h2l(face.outer[Math.floor(d/30)%3]));rim.push(Math.floor(d/15)%2?rc:wh)}
+ return {inner,outer,rim};
+}
+function mean(a){const m=[0,0,0];a.forEach(v=>{for(let k=0;k<3;k++)m[k]+=v[k]/a.length});return m}
+// bộ lọc thông thấp theo góc: điểm trên đĩa quay theo chiều tăng góc nên "trí nhớ" lấy từ các góc lớn hơn
+function blur(c,L){
+ const a=L<0.05?0:Math.exp(-1/L),y=c.map(v=>v.slice());
+ for(let t=0;t<N*8;t++){const i=N-1-(t%N),j=(i+1)%N;for(let k=0;k<3;k++)y[i][k]=a*y[j][k]+(1-a)*c[i][k]}
+ return y;
+}
+function rms(a,m){let s=0;a.forEach(v=>{for(let k=0;k<3;k++)s+=(v[k]-m[k])*(v[k]-m[k])});return Math.sqrt(s/a.length)}
+
+let face='sun',pat=patterns(FACES.sun),cols={},f=0,target=0,fCalc=-1,phase=0,mixPct=0;
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let S=0;
+function fit(){const r=cv.getBoundingClientRect(),d=Math.min(window.devicePixelRatio||1,2);S=r.width;cv.width=Math.round(r.width*d);cv.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0)}
+addEventListener('resize',fit);
+
+function recalc(){
+ const L=360*f*TAU;
+ ['inner','outer','rim'].forEach(k=>{cols[k]=blur(pat[k],L).map(css)});
+ const m=mean(pat.inner),y=blur(pat.inner,L),r0=rms(pat.inner,m),r1=rms(y,mean(y));
+ mixPct=Math.round(Math.max(0,Math.min(1,1-r1/r0))*100);
+ fCalc=f;ui();
+}
+const $=id=>document.getElementById(id);
+function stageText(m){
+ if(f<0.05)return 'Đứng yên: thấy rõ từng cung màu.';
+ if(m<20)return 'Quay chậm: mắt vẫn tách được từng cung màu đang trôi.';
+ if(m<50)return 'Quay vừa: các màu nhòe vào nhau nhưng còn thấy vằn màu rõ.';
+ if(m<75)return 'Quay nhanh: màu hòa dần, còn lấp lánh vằn màu nhạt.';
+ if(m<90)return 'Rất nhanh: gần đồng đều, chỉ còn ánh màu rất nhẹ.';
+ return 'Tốc độ cao: tâm đĩa gần như một mảng xám nhạt đồng đều.';
+}
+function ui(){
+ $('fv').textContent=f.toFixed(1);$('rpm').textContent=Math.round(f*60);
+ $('mix').textContent=mixPct;$('mixBar').style.width=mixPct+'%';$('stageTxt').textContent=stageText(mixPct);
+ const mi=mean(pat.inner),mo=mean(pat.outer);
+ $('swIn').style.background=css(mi);$('hxIn').textContent=hex(mi);
+ $('swOut').style.background=css(mo);$('hxOut').textContent=hex(mo);
+ $('outLbl').textContent=FACES[face].lbl;$('faceLbl').textContent='Đang xem: '+FACES[face].name;
+}
+function wedge(cx,cy,r0,r1,i,ph,colr){
+ const a=(i+ph)*Math.PI/180,b=(i+ph+1.7)*Math.PI/180;
+ ctx.beginPath();ctx.arc(cx,cy,r1,a,b);ctx.arc(cx,cy,r0,b,a,true);ctx.closePath();ctx.fillStyle=colr;ctx.fill();
+}
+let flipT=-1;
+function draw(sx){
+ ctx.clearRect(0,0,S,S);
+ const cx=S/2,cy=S/2,R=S*0.46;
+ ctx.save();ctx.translate(cx,cy);ctx.scale(sx,1);ctx.translate(-cx,-cy);
+ ctx.shadowColor='rgba(0,0,0,.35)';ctx.shadowBlur=S*0.04;ctx.shadowOffsetY=S*0.012;
+ ctx.fillStyle='#FBFAF6';ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();
+ ctx.shadowColor='transparent';
+ const rings=[['rim',.90,1],['outer',.62,.90],['inner',.08,.58]];
+ rings.forEach(g=>{const c=cols[g[0]];for(let i=0;i<N;i++)wedge(cx,cy,R*g[1],R*g[2]*0.999,i,phase,c[i])});
+ ctx.strokeStyle='#272c38';
+ [[.58,.62]].forEach(p=>{ctx.lineWidth=R*(p[1]-p[0]);ctx.beginPath();ctx.arc(cx,cy,R*(p[0]+p[1])/2,0,7);ctx.stroke()});
+ ctx.lineWidth=1.2;ctx.strokeStyle='rgba(0,0,0,.35)';[1,.90,.08].forEach(k=>{ctx.beginPath();ctx.arc(cx,cy,R*k,0,7);ctx.stroke()});
+ ctx.fillStyle='#FBFAF6';ctx.beginPath();ctx.arc(cx,cy,R*.08,0,7);ctx.fill();
+ // hai lỗ xỏ dây
+ ctx.fillStyle='#1b1f2a';[-1,1].forEach(s=>{ctx.beginPath();ctx.arc(cx+s*R*.045,cy,R*.017,0,7);ctx.fill()});
+ // ánh bóng nhẹ của giấy
+ const gl=ctx.createLinearGradient(cx-R,cy-R,cx+R,cy+R);gl.addColorStop(0,'rgba(255,255,255,.18)');gl.addColorStop(.5,'rgba(255,255,255,0)');gl.addColorStop(1,'rgba(0,0,0,.10)');
+ ctx.fillStyle=gl;ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fill();
+ ctx.restore();
+}
+let last=performance.now();
+function tick(now){
+ const dt=Math.min(.05,(now-last)/1000);last=now;
+ f+=(target-f)*(1-Math.exp(-dt/.7));if(Math.abs(target-f)<.02)f=target;
+ if(Math.abs(f-fCalc)>.05||fCalc<0)recalc();
+ const rate=Math.min(f,2)*Math.max(0,Math.min(1,1-(f-2)/6)); // mắt không theo kịp: ở tốc độ cao ảnh gần như đứng yên
+ phase=(phase+rate*360*dt)%360;
+ let sx=1;
+ if(flipT>=0){flipT+=dt/.45;if(flipT>=.5&&flipT-dt/.45<.5){face=face==='sun'?'moon':'sun';pat=patterns(FACES[face]);fCalc=-1;recalc()}
+  sx=Math.max(.02,Math.abs(Math.cos(Math.PI*flipT)));if(flipT>=1){flipT=-1;sx=1}}
+ draw(sx);requestAnimationFrame(tick);
+}
+const presets=[['Đứng yên',0],['Chậm',2],['Vừa',10],['Nhanh',25],['Rất nhanh',45]];
+const chips=$('chips');
+presets.forEach(p=>{const b=document.createElement('button');b.textContent=p[0]+(p[1]?' · '+p[1]:'');b.onclick=()=>{setT(p[1])};chips.appendChild(b)});
+function setT(v){target=v;$('sp').value=v;[...chips.children].forEach((b,i)=>b.classList.toggle('on',presets[i][1]===v))}
+$('sp').oninput=e=>{target=+e.target.value;[...chips.children].forEach(b=>b.classList.remove('on'))};
+$('flip').onclick=()=>{if(flipT<0)flipT=0};
+function renderLegend(){const lg=$('lg');lg.innerHTML='';W.forEach((w,i)=>{const s=document.createElement('span');s.style.background=RAINBOW[i];s.textContent=NAMES[i]+' '+fmt(w)+'°';lg.appendChild(s)})}
+renderLegend();
+// ===== Phần chia đĩa chính xác =====
+const MODES=[
+ {t:'Như clip: 6 cung × 60°',names:['Đỏ','Cam','Vàng','Lục','Lam','Tím'],cols:['#D32F2F','#F57C00','#FFEB3B','#4CAF50','#03A9F4','#9C27B0'],w:[60,60,60,60,60,60]},
+ {t:'7 cung đều × 51,43°',names:NAMES.slice(),cols:RAINBOW.slice(),w:Array(7).fill(360/7)},
+ {t:'7 cung cân bằng (đĩa Nhật–Nguyệt)',names:NAMES.slice(),cols:RAINBOW.slice(),w:W.slice()}
+];
+let cur=2;
+const dvChips=$('dvChips');
+MODES.forEach((m,i)=>{const b=document.createElement('button');b.textContent=m.t;b.onclick=()=>{cur=i;dvDraw()};dvChips.appendChild(b)});
+function P(a,r){return [(r*Math.sin(a*Math.PI/180)).toFixed(2),(-r*Math.cos(a*Math.PI/180)).toFixed(2)]}
+function dvDraw(){
+ const m=MODES[cur],R=130;
+ [...dvChips.children].forEach((b,i)=>b.classList.toggle('on',i===cur));
+ let s='',a0=0;
+ m.w.forEach((w,i)=>{const a1=a0+w,p0=P(a0,R),p1=P(a1,R),mid=a0+w/2,n=P(mid,R*.5),d=P(mid,R*.76);
+  s+='<path d="M0,0 L'+p0+' A'+R+','+R+' 0 0 1 '+p1+' Z" fill="'+m.cols[i]+'"/>';
+  s+='<text class="in" x="'+n[0]+'" y="'+n[1]+'" text-anchor="middle" dominant-baseline="middle">'+m.names[i]+'</text>';
+  s+='<text class="in" x="'+d[0]+'" y="'+d[1]+'" text-anchor="middle" dominant-baseline="middle">'+fmt(w)+'°</text>';
+  a0=a1});
+ for(let a=0;a<360;a+=5){const L=a%30===0?12:a%10===0?8:5,p=P(a,R+2),q=P(a,R+2+L);
+  s+='<line x1="'+p[0]+'" y1="'+p[1]+'" x2="'+q[0]+'" y2="'+q[1]+'" stroke="var(--mut)" stroke-width="1"/>';
+  if(a%30===0){const t=P(a,R+26);s+='<text x="'+t[0]+'" y="'+t[1]+'" text-anchor="middle" dominant-baseline="middle">'+a+'°</text>'}}
+ let c=0;
+ m.w.forEach(w=>{const q=P(c,R+16),t=P(c,R+46);
+  s+='<line x1="0" y1="0" x2="'+q[0]+'" y2="'+q[1]+'" stroke="var(--ink)" stroke-width="1.2" opacity=".6"/>';
+  s+='<text class="bd" x="'+t[0]+'" y="'+t[1]+'" text-anchor="middle" dominant-baseline="middle">'+fmt(c)+'°</text>';c+=w});
+ s+='<circle r="3.5" fill="var(--ink)"/>';
+ $('dvSvg').innerHTML=s;
+ dvTable();
+}
+function dvTable(){
+ const m=MODES[cur],D=+$('dvD').value||12,R=D/2;let a=0,h='<tr><th>Cung</th><th>Rộng</th><th>Mốc từ → đến</th><th>Dây cung</th></tr>';
+ m.w.forEach((w,i)=>{h+='<tr><td><i style="display:inline-block;width:12px;height:12px;border-radius:3px;background:'+m.cols[i]+';vertical-align:-1px;margin-right:6px;border:1px solid var(--line)"></i>'+m.names[i]+'</td><td>'+fmt(w)+'°</td><td>'+fmt(a)+'° → '+fmt(a+w)+'°</td><td>'+fmt(2*R*Math.sin(w*Math.PI/360))+' cm</td></tr>';a+=w});
+ h+='<tr><td colspan="4"><b>Tổng: '+fmt(a)+'°</b></td></tr>';
+ $('dvT').innerHTML=h;
+ let note;
+ if(cur===0)note='Chia 6 cung bằng compa, không cần thước đo góc: mở compa đúng bằng bán kính đĩa ('+fmt(R)+' cm). Đặt kim tại một điểm trên đường tròn và vạch một dấu cắt đường tròn. Đặt kim vào dấu vừa vạch rồi vạch tiếp. Sau 6 dấu sẽ khép kín đúng điểm đầu. Nối các dấu với tâm sẽ được 6 cung 60°. Dây cung 60° bằng đúng bán kính.';
+ else if(cur===1)note='Dùng thước đo góc đánh dấu các mốc 0°, 51,43°, 102,86°, 154,29°, 205,71°, 257,14°, 308,57° rồi nối với tâm. Nếu dùng compa với dây cung '+fmt(2*R*Math.sin(Math.PI/7))+' cm thì sai số cộng dồn, nên kiểm tra dấu cuối có trùng điểm đầu không. Chia đều cho đĩa ngả hồng nhẹ khi quay nhanh.';
+ else note='Dùng thước đo góc và đánh dấu mọi mốc từ cùng một điểm 0°, không đo nối tiếp, để sai số không cộng dồn. Các mốc: 0°, 36°, 72°, 120°, 188°, 256°, 324°. Kiểu chia này cho màu trộn xám trung tính nhất.';
+ $('dvNote').textContent=note;
+}
+$('dvD').oninput=dvTable;
+$('dvApply').onclick=()=>{const m=MODES[cur];RAINBOW=m.cols.slice();NAMES=m.names.slice();W=m.w.slice();pat=patterns(FACES[face]);fCalc=-1;renderLegend();scrollTo({top:0,behavior:'smooth'})};
+dvDraw();
+setT(0);fit();requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
